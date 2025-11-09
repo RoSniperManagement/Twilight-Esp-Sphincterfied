@@ -1,4 +1,4 @@
--- Twilight ESP Modded v2.6 - Fixed Stuck Drawings & Custom Team Colors
+-- Twilight ESP Modded v2.7 - Fixed Team Detection & Stuck Drawings
 -- Compatible with Sphincter UI
 
 local TwilightESP = {}
@@ -172,8 +172,10 @@ end
 
 function utilities.GetPlayerType(player)
     if player.Neutral then return "generic" end
-    local localTeam = LocalPlayer:FindFirstChild("PlayerStates") and LocalPlayer.PlayerStates.Team or nil
-    local playerTeam = player:FindFirstChild("PlayerStates") and player.PlayerStates.Team or nil
+    local localStates = LocalPlayer:FindFirstChild("PlayerStates")
+    local playerStates = player:FindFirstChild("PlayerStates")
+    local localTeam = localStates and localStates:FindFirstChild("Team") and localStates.Team.Value or nil
+    local playerTeam = playerStates and playerStates:FindFirstChild("Team") and playerStates.Team.Value or nil
     if localTeam and playerTeam and playerTeam == localTeam then return "friendly" end
     return "enemy"
 end
