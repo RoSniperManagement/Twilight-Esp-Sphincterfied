@@ -1,4 +1,4 @@
--- Twilight ESP Modded v2.1 - Unified Single Script
+-- Twilight ESP Modded v2.2 - Fixed Colors & Transparency
 -- Compatible with Sphincter UI
 
 local TwilightESP = {}
@@ -15,51 +15,55 @@ local LocalPlayer = Players.LocalPlayer
 TwilightESP.Settings = {
     Enabled = false,
     MaxDistance = 2000,
-    RefreshRate = 0,  -- 0 = uncapped (adapts to FPS), otherwise 1/Hz
+    RefreshRate = 0,  -- 0 = uncapped (adapts to FPS)
     Checks = {
         Team = {Enabled = false, enemy = true, friendly = false, generic = true},
-        Visible = {Enabled = false, OnlyVisible = false, Recolor = true},  -- Recolor for chams through/not through walls
+        Visible = {Enabled = false, OnlyVisible = false, Recolor = true},
     },
     Box = {
         Enabled = false,
-        Style = 1,  -- 1: Corners (with 2 strokes), 2: Full Box (with 2 strokes + optional fill)
-        InnerThickness = 2,  -- Inner fill stroke thickness
-        OutlineThickness = 1,  -- Outer border stroke thickness
-        Filled = {Enabled = false, Transparency = 0.5},  -- Only for full box
+        Style = 1,
+        InnerThickness = 2,
+        OutlineThickness = 1,
+        Filled = {Enabled = false, Transparency = 0.5},
+        Transparency = 1.0,  -- Line opacity
     },
     Tracer = {
         Enabled = {enemy = false, friendly = false, generic = false},
         Thickness = 1,
-        Origin = 2,  -- 1: Local pos, 2: Bottom center, 3: Top center, 4: Screen center, 5: Mouse
+        Origin = 2,
+        Transparency = 1.0,
     },
     Name = {
         Enabled = {enemy = false, friendly = false, generic = false},
-        Style = 1,  -- 1: DisplayName, 2: Username
+        Style = 1,
+        Transparency = 1.0,
     },
     HealthBar = {
         Enabled = {enemy = false, friendly = false, generic = false},
         Bar = true,
         Text = false,
         Suffix = " HP",
-        Padding = 1,  -- Space inside outline
+        Padding = 1,
+        Transparency = 1.0,
     },
     Skeleton = {
         Enabled = {enemy = false, friendly = false, generic = false},
         InnerThickness = 1,
         OutlineThickness = 1,
-        Transparency = 1,
+        Transparency = 1.0,  -- Bone opacity
     },
     Chams = {
         Enabled = {enemy = false, friendly = false, generic = false},
         Fill = {Enabled = true, Transparency = 0.5},
         Outline = {Enabled = true, Transparency = 0},
-        Occlusion = false,  -- false: AlwaysOnTop (show through walls), true: Occluded (hide behind walls)
+        Occlusion = false,
     },
     Radar = {
         Enabled = true,
         Scale = 1,
         Radius = 100,
-        Position = Vector2.new(50, 50),  -- Default top-left, draggable with right-click hold
+        Position = Vector2.new(50, 50),
     },
     TextSize = 14,
 }
@@ -68,22 +72,22 @@ TwilightESP.currentColors = {
     enemy = {
         Box = {
             Outline = {Visible = Color3.fromRGB(255, 0, 0), Invisible = Color3.fromRGB(255, 50, 50)},
-            Fill = Color3.fromRGB(255, 0, 0),  -- New: Fill color for box (alpha via transparency)
+            Fill = Color3.fromRGB(255, 0, 0),
         },
         Tracer = {Visible = Color3.fromRGB(255, 0, 0), Invisible = Color3.fromRGB(255, 50, 50)},
         Text = Color3.fromRGB(255, 255, 255),
         Skeleton = {
             Visible = Color3.fromRGB(255, 0, 0),
-            Fill = Color3.fromRGB(255, 0, 0),  -- New: Inner fill for bones
-            Outline = Color3.fromRGB(255, 255, 255),  -- New: Outer border for bones
+            Fill = Color3.fromRGB(255, 0, 0),
+            Outline = Color3.fromRGB(255, 255, 255),
         },
         HealthBar = {
             Outline = Color3.fromRGB(0, 0, 0),
             Fills = {High = Color3.fromRGB(0, 255, 0), Medium = Color3.fromRGB(255, 255, 0), Low = Color3.fromRGB(255, 0, 0)},
         },
         Chams = {
-            Fill = {Visible = Color3.fromRGB(0, 255, 0), Invisible = Color3.fromRGB(255, 0, 0)},  -- Green when visible, Red through walls
-            Outline = {Visible = Color3.fromRGB(0, 200, 0), Invisible = Color3.fromRGB(200, 0, 0)},  -- Dark green outline visible, dark red through walls
+            Fill = {Visible = Color3.fromRGB(0, 255, 0), Invisible = Color3.fromRGB(255, 0, 0)},
+            Outline = {Visible = Color3.fromRGB(0, 200, 0), Invisible = Color3.fromRGB(200, 0, 0)},
         },
     },
     friendly = {
@@ -103,7 +107,7 @@ TwilightESP.currentColors = {
             Fills = {High = Color3.fromRGB(0, 255, 0), Medium = Color3.fromRGB(255, 255, 0), Low = Color3.fromRGB(255, 0, 0)},
         },
         Chams = {
-            Fill = {Visible = Color3.fromRGB(0, 255, 0), Invisible = Color3.fromRGB(0, 100, 0)},  -- Bright green visible, dimmer through walls
+            Fill = {Visible = Color3.fromRGB(0, 255, 0), Invisible = Color3.fromRGB(0, 100, 0)},
             Outline = {Visible = Color3.fromRGB(0, 200, 0), Invisible = Color3.fromRGB(0, 100, 0)},
         },
     },
@@ -124,7 +128,7 @@ TwilightESP.currentColors = {
             Fills = {High = Color3.fromRGB(0, 255, 0), Medium = Color3.fromRGB(255, 255, 0), Low = Color3.fromRGB(255, 0, 0)},
         },
         Chams = {
-            Fill = {Visible = Color3.fromRGB(255, 255, 255), Invisible = Color3.fromRGB(100, 100, 100)},  -- White visible, gray through walls
+            Fill = {Visible = Color3.fromRGB(255, 255, 255), Invisible = Color3.fromRGB(100, 100, 100)},
             Outline = {Visible = Color3.fromRGB(200, 200, 200), Invisible = Color3.fromRGB(100, 100, 100)},
         },
     },
@@ -137,9 +141,9 @@ TwilightESP.currentColors = {
 -- Internal Tables
 local connections = {}
 local Drawings = {ESP = {}, Skeleton = {}, Radar = {}, Object = {}}
-TwilightESP.Drawings = Drawings  -- FIX: Expose Drawings to the library object
-TwilightESP.Highlights = {}  -- Now {los=Highlight, occ=Highlight} per player
-TwilightESP.ChamsModels = {}  -- player -> Model
+TwilightESP.Drawings = Drawings
+TwilightESP.Highlights = {}
+TwilightESP.ChamsModels = {}
 TwilightESP.ObjectESPs = {ESPs = {}, Highlights = {}}
 
 -- Utilities
@@ -163,12 +167,12 @@ function utilities.GetTracerOrigin(library)
     elseif origin == 5 then
         return UserInputService:GetMouseLocation()
     end
-    return Vector2.new(viewSize.X / 2, viewSize.Y / 2)  -- Default
+    return Vector2.new(viewSize.X / 2, viewSize.Y / 2)
 end
 
 function utilities.GetPlayerType(player)
     if player.Neutral then return "generic" end
-    if player == LocalPlayer then return "friendly" end  -- Treat local as friendly for colors
+    if player == LocalPlayer then return "friendly" end
     if player.Team and LocalPlayer.Team and player.TeamColor == LocalPlayer.TeamColor then return "friendly" end
     return "enemy"
 end
@@ -208,7 +212,7 @@ function utilities.GetPlayerColor(library, player, isVisible, part, additional)
                     return colors.HealthBar.Fills[status]
                 end
             end
-            return colors.HealthBar.Fills.High  -- Default full
+            return colors.HealthBar.Fills.High
         end
     elseif part == "Chams" then
         if additional == "Fill" or additional == "Outline" then
@@ -219,7 +223,7 @@ function utilities.GetPlayerColor(library, player, isVisible, part, additional)
     return Color3.fromRGB(255, 255, 255)  -- Fallback
 end
 
--- Thick Line Drawing Helper (returns {fillLine, outLine1, outLine2})
+-- Thick Line Drawing Helper
 local function createThickLine()
     local fill = Drawing.new("Line")
     fill.Transparency = 1
@@ -230,7 +234,7 @@ local function createThickLine()
     return {fill = fill, out1 = out1, out2 = out2}
 end
 
-local function updateThickLine(segment, from, to, fillCol, outCol, innerThick, outThick)
+local function updateThickLine(segment, from, to, fillCol, outCol, innerThick, outThick, transparency)
     if not from or not to then
         segment.fill.Visible = false
         segment.out1.Visible = false
@@ -247,6 +251,7 @@ local function updateThickLine(segment, from, to, fillCol, outCol, innerThick, o
     segment.fill.Color = fillCol
     segment.fill.Thickness = innerThick
     segment.fill.Visible = true
+    segment.fill.Transparency = transparency or 1
 
     -- Outlines
     local o1From = from + perp * offset
@@ -256,6 +261,7 @@ local function updateThickLine(segment, from, to, fillCol, outCol, innerThick, o
     segment.out1.Color = outCol
     segment.out1.Thickness = outThick
     segment.out1.Visible = true
+    segment.out1.Transparency = transparency or 1
 
     local o2From = from - perp * offset
     local o2To = to - perp * offset
@@ -264,6 +270,7 @@ local function updateThickLine(segment, from, to, fillCol, outCol, innerThick, o
     segment.out2.Color = outCol
     segment.out2.Thickness = outThick
     segment.out2.Visible = true
+    segment.out2.Transparency = transparency or 1
 end
 
 local function removeThickLine(segment)
@@ -274,20 +281,16 @@ local function removeThickLine(segment)
     end)
 end
 
--- Chams Setup
+-- Chams Setup (unchanged)
 local function setupChams(library, player, char)
-    -- Cleanup old
     local oldModel = library.ChamsModels[player]
-    if oldModel then
-        oldModel:Destroy()
-    end
+    if oldModel then oldModel:Destroy() end
     local oldHighlights = library.Highlights[player]
     if oldHighlights then
         if oldHighlights.los then oldHighlights.los:Destroy() end
         if oldHighlights.occ then oldHighlights.occ:Destroy() end
     end
 
-    -- Create cloned model
     local chamsChr = Instance.new("Model")
     chamsChr.Parent = workspace
     chamsChr.Name = player.Name .. "_Chams"
@@ -300,20 +303,18 @@ local function setupChams(library, player, char)
         cloned:ClearAllChildren()
         cloned.CanCollide = false
         if cloned:IsA("MeshPart") then cloned.TextureID = "" end
-        cloned.Size = cloned.Size * 0.99  -- Anti z-fighting
+        cloned.Size = cloned.Size * 0.99
         local weld = Instance.new("WeldConstraint")
         weld.Parent = cloned
         weld.Part0 = cloned
         weld.Part1 = child
     end
 
-    -- LOS Highlight (on original char)
     local losHighlight = Instance.new("Highlight")
     losHighlight.Parent = char
     losHighlight.DepthMode = Enum.HighlightDepthMode.Occluded
-    losHighlight.OutlineTransparency = 1  -- As per example
+    losHighlight.OutlineTransparency = 1
 
-    -- OCC Highlight (on clone)
     local occHighlight = Instance.new("Highlight")
     occHighlight.Parent = chamsChr
     occHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
@@ -327,19 +328,16 @@ local playerEsp = {}
 function playerEsp.CreateESP(library, player)
     local esp = {}
 
-    -- Box Segments (8 for corners, 4 for full)
     esp.Box = {Segments = {}}
-    for i = 1, 8 do  -- Max for corners
+    for i = 1, 8 do
         table.insert(esp.Box.Segments, createThickLine())
     end
-    esp.Box.FilledQuad = nil  -- For full box fill
+    esp.Box.FilledQuad = nil
 
-    -- Tracer
     esp.Tracer = Drawing.new("Line")
     esp.Tracer.Transparency = 1
     esp.Tracer.Thickness = library.Settings.Tracer.Thickness
 
-    -- HealthBar
     esp.HealthBar = {
         Outline = Drawing.new("Square"),
         Fill = Drawing.new("Square"),
@@ -356,7 +354,6 @@ function playerEsp.CreateESP(library, player)
     esp.HealthBar.Text.Outline = true
     esp.HealthBar.Text.Transparency = 1
 
-    -- Info
     esp.Info = {
         Name = Drawing.new("Text"),
         Distance = Drawing.new("Text"),
@@ -369,12 +366,10 @@ function playerEsp.CreateESP(library, player)
         text.Transparency = 1
     end
 
-    -- Snapline (simple, no thick)
     esp.Snapline = Drawing.new("Line")
     esp.Snapline.Transparency = 1
     esp.Snapline.Thickness = 1
 
-    -- Skeleton Segments (~20 bones)
     esp.Skeleton = {}
     local boneNames = {"Head", "Neck", "UpperSpine", "LowerSpine", "LeftShoulder", "LeftUpperArm", "LeftLowerArm", "LeftHand", "RightShoulder", "RightUpperArm", "RightLowerArm", "RightHand", "LeftHip", "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightHip", "RightUpperLeg", "RightLowerLeg", "RightFoot"}
     for _, bone in ipairs(boneNames) do
@@ -388,7 +383,6 @@ function playerEsp.RemoveESP(library, player)
     local esp = library.Drawings.ESP[player]
     if not esp then return end
 
-    -- Box
     for _, seg in ipairs(esp.Box.Segments) do
         removeThickLine(seg)
     end
@@ -396,7 +390,6 @@ function playerEsp.RemoveESP(library, player)
         pcall(esp.Box.FilledQuad.Remove, esp.Box.FilledQuad)
     end
 
-    -- Other drawings
     pcall(esp.Tracer.Remove, esp.Tracer)
     for _, obj in pairs(esp.HealthBar) do
         pcall(obj.Remove, obj)
@@ -406,14 +399,12 @@ function playerEsp.RemoveESP(library, player)
     end
     pcall(esp.Snapline.Remove, esp.Snapline)
 
-    -- Skeleton
     for _, seg in pairs(esp.Skeleton) do
         removeThickLine(seg)
     end
 
     library.Drawings.ESP[player] = nil
 
-    -- Chams cleanup
     local chamsModel = library.ChamsModels[player]
     if chamsModel then
         chamsModel:Destroy()
@@ -432,7 +423,6 @@ function playerEsp.UpdateESP(library, player)
     if not esp then return end
 
     if not library.Settings.Enabled then
-        -- Hide all
         for _, seg in ipairs(esp.Box.Segments) do
             seg.fill.Visible = false
             seg.out1.Visible = false
@@ -451,7 +441,6 @@ function playerEsp.UpdateESP(library, player)
             seg.out1.Visible = false
             seg.out2.Visible = false
         end
-        -- Chams disable
         local highlights = library.Highlights[player]
         if highlights then
             highlights.los.Enabled = false
@@ -478,9 +467,8 @@ function playerEsp.UpdateESP(library, player)
         if library.Settings.Checks.Visible.OnlyVisible and not isVisible then return end
     end
 
-    if library.Settings.Checks.Team.Enabled and not library.Settings.Checks.Team[teamType] then return end  -- FIX: Proper team filtering (show enemies only when enabled)
+    if library.Settings.Checks.Team.Enabled and not library.Settings.Checks.Team[teamType] then return end
 
-    -- Box Calculation
     local head = character:FindFirstChild("Head")
     if not head then return end
     local headPos = Camera:WorldToViewportPoint(head.Position)
@@ -495,30 +483,25 @@ function playerEsp.UpdateESP(library, player)
     local innerThick = library.Settings.Box.InnerThickness
     local outThick = library.Settings.Box.OutlineThickness
     local cornerSize = math.min(boxWidth, boxHeight) * 0.2
+    local boxTrans = library.Settings.Box.Transparency
 
     if library.Settings.Box.Enabled then
         local segments = esp.Box.Segments
         if library.Settings.Box.Style == 1 then  -- Corners
-            -- Top Left H/V
-            updateThickLine(segments[1], boxPosition, boxPosition + Vector2.new(cornerSize, 0), boxFillCol, boxOutCol, innerThick, outThick)
-            updateThickLine(segments[2], boxPosition, boxPosition + Vector2.new(0, cornerSize), boxFillCol, boxOutCol, innerThick, outThick)
-            -- Top Right H/V
-            updateThickLine(segments[3], boxPosition + Vector2.new(boxWidth, 0), boxPosition + Vector2.new(boxWidth - cornerSize, 0), boxFillCol, boxOutCol, innerThick, outThick)
-            updateThickLine(segments[4], boxPosition + Vector2.new(boxWidth, 0), boxPosition + Vector2.new(boxWidth, cornerSize), boxFillCol, boxOutCol, innerThick, outThick)
-            -- Bottom Left H/V
-            updateThickLine(segments[5], boxPosition + Vector2.new(0, boxHeight), boxPosition + Vector2.new(cornerSize, boxHeight), boxFillCol, boxOutCol, innerThick, outThick)
-            updateThickLine(segments[6], boxPosition + Vector2.new(0, boxHeight), boxPosition + Vector2.new(0, boxHeight - cornerSize), boxFillCol, boxOutCol, innerThick, outThick)
-            -- Bottom Right H/V
-            updateThickLine(segments[7], boxPosition + Vector2.new(boxWidth, boxHeight), boxPosition + Vector2.new(boxWidth - cornerSize, boxHeight), boxFillCol, boxOutCol, innerThick, outThick)
-            updateThickLine(segments[8], boxPosition + Vector2.new(boxWidth, boxHeight), boxPosition + Vector2.new(boxWidth, boxHeight - cornerSize), boxFillCol, boxOutCol, innerThick, outThick)
+            updateThickLine(segments[1], boxPosition, boxPosition + Vector2.new(cornerSize, 0), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
+            updateThickLine(segments[2], boxPosition, boxPosition + Vector2.new(0, cornerSize), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
+            updateThickLine(segments[3], boxPosition + Vector2.new(boxWidth, 0), boxPosition + Vector2.new(boxWidth - cornerSize, 0), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
+            updateThickLine(segments[4], boxPosition + Vector2.new(boxWidth, 0), boxPosition + Vector2.new(boxWidth, cornerSize), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
+            updateThickLine(segments[5], boxPosition + Vector2.new(0, boxHeight), boxPosition + Vector2.new(cornerSize, boxHeight), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
+            updateThickLine(segments[6], boxPosition + Vector2.new(0, boxHeight), boxPosition + Vector2.new(0, boxHeight - cornerSize), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
+            updateThickLine(segments[7], boxPosition + Vector2.new(boxWidth, boxHeight), boxPosition + Vector2.new(boxWidth - cornerSize, boxHeight), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
+            updateThickLine(segments[8], boxPosition + Vector2.new(boxWidth, boxHeight), boxPosition + Vector2.new(boxWidth, boxHeight - cornerSize), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
         else  -- Full Box
-            -- Left/Right/Top/Bottom
-            updateThickLine(segments[1], boxPosition, boxPosition + Vector2.new(0, boxHeight), boxFillCol, boxOutCol, innerThick, outThick)
-            updateThickLine(segments[2], boxPosition + Vector2.new(boxWidth, 0), boxPosition + Vector2.new(boxWidth, boxHeight), boxFillCol, boxOutCol, innerThick, outThick)
-            updateThickLine(segments[3], boxPosition, boxPosition + Vector2.new(boxWidth, 0), boxFillCol, boxOutCol, innerThick, outThick)
-            updateThickLine(segments[4], boxPosition + Vector2.new(0, boxHeight), boxPosition + Vector2.new(boxWidth, boxHeight), boxFillCol, boxOutCol, innerThick, outThick)
+            updateThickLine(segments[1], boxPosition, boxPosition + Vector2.new(0, boxHeight), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
+            updateThickLine(segments[2], boxPosition + Vector2.new(boxWidth, 0), boxPosition + Vector2.new(boxWidth, boxHeight), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
+            updateThickLine(segments[3], boxPosition, boxPosition + Vector2.new(boxWidth, 0), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
+            updateThickLine(segments[4], boxPosition + Vector2.new(0, boxHeight), boxPosition + Vector2.new(boxWidth, boxHeight), boxFillCol, boxOutCol, innerThick, outThick, boxTrans)
 
-            -- Fill
             if library.Settings.Box.Filled.Enabled and not esp.Box.FilledQuad then
                 esp.Box.FilledQuad = Drawing.new("Quad")
                 esp.Box.FilledQuad.Filled = true
@@ -542,18 +525,18 @@ function playerEsp.UpdateESP(library, player)
         if esp.Box.FilledQuad then esp.Box.FilledQuad.Visible = false end
     end
 
-    -- Tracer
+    local tracerTrans = library.Settings.Tracer.Transparency
     if library.Settings.Tracer.Enabled[teamType] then
         esp.Tracer.From = utilities.GetTracerOrigin(library)
         esp.Tracer.To = Vector2.new(pos.X, pos.Y)
         esp.Tracer.Color = utilities.GetPlayerColor(library, player, isVisible, "Tracer")
-        esp.Tracer.Transparency = 1
+        esp.Tracer.Transparency = tracerTrans
         esp.Tracer.Visible = true
     else
         esp.Tracer.Visible = false
     end
 
-    -- HealthBar
+    local healthTrans = library.Settings.HealthBar.Transparency
     if library.Settings.HealthBar.Enabled[teamType] then
         local barWidth = 4
         local barHeight = boxHeight
@@ -568,11 +551,13 @@ function playerEsp.UpdateESP(library, player)
             esp.HealthBar.Outline.Size = Vector2.new(barWidth, barHeight)
             esp.HealthBar.Outline.Position = barPos
             esp.HealthBar.Outline.Color = outlineCol
+            esp.HealthBar.Outline.Transparency = healthTrans
             esp.HealthBar.Outline.Visible = true
 
             esp.HealthBar.Fill.Size = Vector2.new(barWidth - 2 * pad, fillHeight)
             esp.HealthBar.Fill.Position = Vector2.new(barPos.X + pad, barPos.Y + barHeight - pad - fillHeight)
             esp.HealthBar.Fill.Color = fillCol
+            esp.HealthBar.Fill.Transparency = healthTrans
             esp.HealthBar.Fill.Visible = true
         else
             esp.HealthBar.Outline.Visible = false
@@ -583,6 +568,7 @@ function playerEsp.UpdateESP(library, player)
             esp.HealthBar.Text.Text = math.floor(humanoid.Health) .. library.Settings.HealthBar.Suffix
             esp.HealthBar.Text.Position = Vector2.new(barPos.X + barWidth + 4, barPos.Y + barHeight / 2)
             esp.HealthBar.Text.Color = fillCol
+            esp.HealthBar.Text.Transparency = healthTrans
             esp.HealthBar.Text.Visible = true
         else
             esp.HealthBar.Text.Visible = false
@@ -593,27 +579,26 @@ function playerEsp.UpdateESP(library, player)
         end
     end
 
-    -- Name
+    local textTrans = library.Settings.Name.Transparency
     if library.Settings.Name.Enabled[teamType] then
         esp.Info.Name.Text = library.Settings.Name.Style == 1 and player.DisplayName or player.Name
         esp.Info.Name.Position = Vector2.new(boxPosition.X + boxWidth / 2, boxPosition.Y - 20)
         esp.Info.Name.Color = utilities.GetPlayerColor(library, player, isVisible, "Text")
+        esp.Info.Name.Transparency = textTrans
         esp.Info.Name.Visible = true
     else
         esp.Info.Name.Visible = false
     end
 
-    -- Distance
     local distText = math.floor(distance) .. " studs"
     esp.Info.Distance.Text = distText
     esp.Info.Distance.Position = Vector2.new(boxPosition.X + boxWidth / 2, boxPosition.Y + boxHeight + 2)
     esp.Info.Distance.Color = utilities.GetPlayerColor(library, player, isVisible, "Text")
+    esp.Info.Distance.Transparency = textTrans
     esp.Info.Distance.Visible = library.Settings.Name.Enabled[teamType]
 
-    -- Chams
     local highlights = library.Highlights[player]
     if highlights and library.Settings.Chams.Enabled[teamType] then
-        -- LOS (Occluded, visible colors)
         local losFillCol = utilities.GetPlayerColor(library, player, true, "Chams", "Fill")
         local losOutCol = utilities.GetPlayerColor(library, player, true, "Chams", "Outline")
         highlights.los.FillColor = losFillCol
@@ -622,7 +607,6 @@ function playerEsp.UpdateESP(library, player)
         highlights.los.OutlineTransparency = library.Settings.Chams.Outline.Enabled and library.Settings.Chams.Outline.Transparency or 1
         highlights.los.Enabled = true
 
-        -- OCC (AlwaysOnTop, through-wall colors)
         local occFillCol = utilities.GetPlayerColor(library, player, false, "Chams", "Fill")
         local occOutCol = utilities.GetPlayerColor(library, player, false, "Chams", "Outline")
         highlights.occ.FillColor = occFillCol
@@ -635,7 +619,7 @@ function playerEsp.UpdateESP(library, player)
         highlights.occ.Enabled = false
     end
 
-    -- Skeleton
+    local skelTrans = library.Settings.Skeleton.Transparency
     if library.Settings.Skeleton.Enabled[teamType] then
         local bones = {
             Head = character:FindFirstChild("Head"),
@@ -679,13 +663,9 @@ function playerEsp.UpdateESP(library, player)
                 seg.fill.Visible = false
                 return
             end
-            updateThickLine(seg, Vector2.new(fromScreen.X, fromScreen.Y), Vector2.new(toScreen.X, toScreen.Y), skelFillCol, skelOutCol, skelInnerThick, skelOutThick)
-            seg.fill.Transparency = library.Settings.Skeleton.Transparency
-            seg.out1.Transparency = library.Settings.Skeleton.Transparency
-            seg.out2.Transparency = library.Settings.Skeleton.Transparency
+            updateThickLine(seg, Vector2.new(fromScreen.X, fromScreen.Y), Vector2.new(toScreen.X, toScreen.Y), skelFillCol, skelOutCol, skelInnerThick, skelOutThick, skelTrans)
         end
 
-        -- Draw bones
         updateBone(bones.Head, bones.UpperTorso, esp.Skeleton.Head)
         updateBone(bones.UpperTorso, bones.LowerTorso, esp.Skeleton.UpperSpine)
         updateBone(bones.LowerTorso, bones.UpperTorso, esp.Skeleton.Neck)
@@ -710,11 +690,11 @@ function playerEsp.UpdateESP(library, player)
     end
 end
 
--- Object ESP (simplified, no chams/skeleton for now)
+-- Object ESP (unchanged)
 local objectEsp = {}
 
 function objectEsp.CreateESP(library, object)
-    local esp = playerEsp.CreateESP(library, {Neutral = true})  -- Reuse player esp structure, no chams
+    local esp = playerEsp.CreateESP(library, {Neutral = true})
     esp.object = object
     library.ObjectESPs.ESPs[object] = esp
 end
@@ -722,14 +702,12 @@ end
 function objectEsp.UpdateESP(library, esp)
     local object = esp.object
     if not object or not object.Parent then return end
-    -- Reuse player update logic with fake player
     playerEsp.UpdateESP(library, {Character = object, Neutral = true})
 end
 
 function objectEsp.RemoveESP(library, object)
     local esp = library.ObjectESPs.ESPs[object]
     if esp then
-        -- Reuse remove without chams
         for _, seg in ipairs(esp.Box.Segments) do removeThickLine(seg) end
         if esp.Box.FilledQuad then pcall(esp.Box.FilledQuad.Remove, esp.Box.FilledQuad) end
         pcall(esp.Tracer.Remove, esp.Tracer)
@@ -741,7 +719,7 @@ function objectEsp.RemoveESP(library, object)
     end
 end
 
--- Radar Module
+-- Radar Module (with transparency for dots)
 local radar = {}
 
 function radar.Init(library)
@@ -764,7 +742,6 @@ function radar.Init(library)
     local dragging = false
     local dragStart, mouseStart = Vector2.new(), Vector2.new()
 
-    -- Draggable Radar
     UserInputService.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton2 and library.Settings.Radar.Enabled then
             local mousePos = UserInputService:GetMouseLocation()
@@ -795,16 +772,16 @@ function radar.Init(library)
         local mag = flatDelta.Magnitude
         if mag < 1 then return 0, 0 end
         local camLookFlat = Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)
-        if camLookFlat.Magnitude < 0.1 then camLookFlat = Vector3.new(0, 0, -1) end  -- Fallback
+        if camLookFlat.Magnitude < 0.1 then camLookFlat = Vector3.new(0, 0, -1) end
         local forward = camLookFlat.Unit
         local right = forward:Cross(Vector3.new(0, 1, 0)).Unit
         local relX = flatDelta:Dot(right)
         local relZ = flatDelta:Dot(forward)
         return relX, relZ
-    end  -- FIX: Correct radar relative positioning based on camera look direction
+    end
 
     local function placeDot(plr)
-        local dot = DrawCircle(1, Color3.new(1,1,1), 3, true, 1)
+        local dot = DrawCircle(0.8, Color3.new(1,1,1), 3, true, 1)  -- NEW: Visible transparency 0.8
         local conn
         conn = RunService.RenderStepped:Connect(function()
             if not plr.Parent or not plr.Character or not plr.Character.PrimaryPart or (plr.Character:FindFirstChildOfClass("Humanoid") and plr.Character.Humanoid.Health <= 0) then
@@ -833,6 +810,7 @@ function radar.Init(library)
                 dot.Radius = 2
             end
             dot.Color = utilities.GetPlayerColor(library, plr, isVis, "Box", "Outline")
+            dot.Transparency = 0.8  -- NEW: Ensure visible
             dot.Visible = true
         end)
         table.insert(radarDots, {dot = dot, conn = conn, plr = plr})
@@ -846,17 +824,16 @@ function radar.Init(library)
         tri.PointA = library.Settings.Radar.Position + Vector2.new(0, -6)
         tri.PointB = library.Settings.Radar.Position + Vector2.new(-3, 6)
         tri.PointC = library.Settings.Radar.Position + Vector2.new(3, 6)
+        tri.Transparency = 0.8  -- NEW
         tri.Visible = false
         return tri
     end
     localDot = newLocalDot()
 
-    -- Init players
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer then placeDot(plr) end
     end
 
-    -- Events
     connections.PlayerAdded2 = Players.PlayerAdded:Connect(function(plr)
         if plr ~= LocalPlayer then placeDot(plr) end
         pcall(localDot.Remove, localDot)
@@ -873,7 +850,6 @@ function radar.Init(library)
         end
     end)
 
-    -- Radar loop
     connections.RadarLoop = RunService.RenderStepped:Connect(function()
         if not library.Settings.Radar.Enabled then
             radarBg.Visible = false
@@ -897,6 +873,7 @@ function radar.Init(library)
             localDot.PointB = library.Settings.Radar.Position + Vector2.new(-3, 6)
             localDot.PointC = library.Settings.Radar.Position + Vector2.new(3, 6)
             localDot.Color = utilities.GetPlayerColor(library, LocalPlayer, true, "Box", "Outline")
+            localDot.Transparency = 0.8
             localDot.Visible = true
         end
     end)
@@ -918,7 +895,6 @@ end
 task.spawn(function()
     repeat task.wait() until LocalPlayer.Character and LocalPlayer.Character.PrimaryPart
 
-    -- Player setup
     local function initPlayer(player)
         if player == LocalPlayer then return end
         playerEsp.CreateESP(TwilightESP, player)
@@ -938,7 +914,6 @@ task.spawn(function()
         playerEsp.RemoveESP(TwilightESP, player)
     end)
 
-    -- Main loop (uncapped by default for FPS adaptation)
     connections.MainLoop = RunService.RenderStepped:Connect(function()
         local refreshRate = TwilightESP.Settings.RefreshRate
         if refreshRate > 0 then
@@ -953,7 +928,6 @@ task.spawn(function()
             end
         end
 
-        -- Objects
         for obj, _ in pairs(TwilightESP.ObjectESPs.ESPs) do
             if obj.Parent then
                 objectEsp.UpdateESP(TwilightESP, TwilightESP.ObjectESPs.ESPs[obj])
@@ -963,7 +937,6 @@ task.spawn(function()
         end
     end)
 
-    -- Radar
     radar.Init(TwilightESP)
 end)
 
