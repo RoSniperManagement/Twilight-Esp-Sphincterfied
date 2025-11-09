@@ -1,7 +1,6 @@
 -- Twilight ESP Modded v2.1 - Unified Single Script
 -- Compatible with Sphincter UI
 
-
 local TwilightESP = {}
 
 -- Services (cloneref for safety)
@@ -138,6 +137,7 @@ TwilightESP.currentColors = {
 -- Internal Tables
 local connections = {}
 local Drawings = {ESP = {}, Skeleton = {}, Radar = {}, Object = {}}
+TwilightESP.Drawings = Drawings  -- FIX: Expose Drawings to the library object
 TwilightESP.Highlights = {}  -- Now {los=Highlight, occ=Highlight} per player
 TwilightESP.ChamsModels = {}  -- player -> Model
 TwilightESP.ObjectESPs = {ESPs = {}, Highlights = {}}
@@ -757,8 +757,8 @@ function radar.Init(library)
         return circ
     end
 
-    local radarBg = DrawCircle(0.9, library.Settings.currentColors.Radar.Background, library.Settings.Radar.Radius, true, 1)
-    local radarBorder = DrawCircle(0.75, library.Settings.currentColors.Radar.Border, library.Settings.Radar.Radius, false, 3)
+    local radarBg = DrawCircle(0.9, library.currentColors.Radar.Background, library.Settings.Radar.Radius, true, 1)  -- FIX: currentColors (not Settings.currentColors)
+    local radarBorder = DrawCircle(0.75, library.currentColors.Radar.Border, library.Settings.Radar.Radius, false, 3)  -- FIX: currentColors (not Settings.currentColors)
     local radarDots = {}
     local localDot = nil
     local dragging = false
@@ -878,12 +878,12 @@ function radar.Init(library)
         end
         radarBg.Position = library.Settings.Radar.Position
         radarBg.Radius = library.Settings.Radar.Radius
-        radarBg.Color = library.Settings.currentColors.Radar.Background
+        radarBg.Color = library.currentColors.Radar.Background  -- FIX: currentColors (not Settings.currentColors)
         radarBg.Visible = true
 
         radarBorder.Position = library.Settings.Radar.Position
         radarBorder.Radius = library.Settings.Radar.Radius
-        radarBorder.Color = library.Settings.currentColors.Radar.Border
+        radarBorder.Color = library.currentColors.Radar.Border  -- FIX: currentColors (not Settings.currentColors)
         radarBorder.Visible = true
 
         if localDot then
@@ -895,8 +895,8 @@ function radar.Init(library)
         end
     end)
 
-    Drawings.Radar = {radarBg, radarBorder, localDot}
-    for _, d in ipairs(radarDots) do table.insert(Drawings.Radar, d.dot) end
+    library.Drawings.Radar = {radarBg, radarBorder, localDot}  -- Use library.Drawings
+    for _, d in ipairs(radarDots) do table.insert(library.Drawings.Radar, d.dot) end
 end
 
 -- Object Support
@@ -964,13 +964,13 @@ function TwilightESP:Unload()
     for _, conn in pairs(connections) do
         if typeof(conn) == "RBXScriptConnection" then conn:Disconnect() end
     end
-    for player, _ in pairs(TwilightESP.Drawings.ESP) do
+    for player, _ in pairs(TwilightESP.Drawings.ESP) do  -- Already using TwilightESP.Drawings
         playerEsp.RemoveESP(TwilightESP, player)
     end
     for obj, _ in pairs(TwilightESP.ObjectESPs.ESPs) do
         objectEsp.RemoveESP(TwilightESP, obj)
     end
-    for _, drawings in pairs(Drawings) do
+    for _, drawings in pairs(TwilightESP.Drawings) do  -- FIX: Use TwilightESP.Drawings (not local Drawings)
         for _, d in ipairs(drawings) do
             pcall(d.Remove, d)
         end
