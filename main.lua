@@ -1,4 +1,4 @@
--- Twilight ESP Modded v2.4 - Fixed R6 Support & Color Handling
+-- Twilight ESP Modded v2.5 - Fixed Bounding Box Calculation
 -- Compatible with Sphincter UI
 
 local TwilightESP = {}
@@ -474,22 +474,46 @@ function playerEsp.UpdateESP(library, player)
 
     if library.Settings.Checks.Team.Enabled and not library.Settings.Checks.Team[teamType] then return end
 
-    local head = character:FindFirstChild("Head")
-    if not head then return end
-    local headPos = Camera:WorldToViewportPoint(head.Position)
-    local footPos = Camera:WorldToViewportPoint(rootPart.Position)
-    local boxHeight = math.abs(footPos.Y - headPos.Y)
-    local boxWidth = boxHeight * 0.5
-    local boxPosition = Vector2.new(pos.X - boxWidth / 2, headPos.Y)
+    -- NEW: Accurate bounding box calculation using GetBoundingBox
+    local cf, size = character:GetBoundingBox()
+    local corners3D = {
+        cf:PointToWorldSpace(Vector3.new(-size.X/2, -size.Y/2, -size.Z/2)),
+        cf:PointToWorldSpace(Vector3.new(size.X/2, -size.Y/2, -size.Z/2)),
+        cf:PointToWorldSpace(Vector3.new(-size.X/2, size.Y/2, -size.Z/2)),
+        cf:PointToWorldSpace(Vector3.new(size.X/2, size.Y/2, -size.Z/2)),
+        cf:PointToWorldSpace(Vector3.new(-size.X/2, -size.Y/2, size.Z/2)),
+        cf:PointToWorldSpace(Vector3.new(size.X/2, -size.Y/2, size.Z/2)),
+        cf:PointToWorldSpace(Vector3.new(-size.X/2, size.Y/2, size.Z/2)),
+        cf:PointToWorldSpace(Vector3.new(size.X/2, size.Y/2, size.Z/2)),
+    }
+    local screenCorners = {}
+    for _, corner in ipairs(corners3D) do
+        local screen, visible = Camera:WorldToViewportPoint(corner)
+        if visible then
+            table.insert(screenCorners, Vector2.new(screen.X, screen.Y))
+        end
+    end
+    if #screenCorners == 0 then return end
+
+    local minX = math.huge
+    local maxX = -math.huge
+    local minY = math.huge
+    local maxY = -math.huge
+    for _, corner in ipairs(screenCorners) do
+        minX = math.min(minX, corner.X)
+        maxX = math.max(maxX, corner.X)
+        minY = math.min(minY, corner.Y)
+        maxY = math.max(maxY, corner.Y)
+    end
+
+    local boxPosition = Vector2.new(minX, minY)
+    local boxWidth = maxX - minX
+    local boxHeight = maxY - minY
     local boxSize = Vector2.new(boxWidth, boxHeight)
 
     -- Screen bounds check to prevent off-screen bleeding
     local viewSize = Camera.ViewportSize
-    local left = boxPosition.X
-    local right = left + boxWidth
-    local top = boxPosition.Y
-    local bottom = top + boxHeight
-    if right < 0 or left > viewSize.X or bottom < 0 or top > viewSize.Y then return end
+    if boxPosition.X + boxWidth < 0 or boxPosition.X > viewSize.X or boxPosition.Y + boxHeight < 0 or boxPosition.Y > viewSize.Y then return end
 
     local boxFillCol = utilities.GetPlayerColor(library, player, isVisible, "Box", "Fill")
     local boxOutCol = utilities.GetPlayerColor(library, player, isVisible, "Box", "Outline")
@@ -639,17 +663,17 @@ function playerEsp.UpdateESP(library, player)
             UpperTorso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso"),
             LowerTorso = character:FindFirstChild("LowerTorso") or character:FindFirstChild("Torso"),
             LeftUpperArm = character:FindFirstChild("LeftUpperArm") or character:FindFirstChild("Left Arm"),
-            LeftLowerArm = character:FindFirstChild("LeftLowerArm") or character:FindFirstChild("Left Arm"),
-            LeftHand = character:FindFirstChild("LeftHand") or character:FindFirstChild("Left Arm"),
+            LeftLowerArm = character:FindFirstChild("LeftLowerArm") or character:FindFirstChild("Left Forearm"),
+            LeftHand = character:FindFirstChild("LeftHand"),
             RightUpperArm = character:FindFirstChild("RightUpperArm") or character:FindFirstChild("Right Arm"),
-            RightLowerArm = character:FindFirstChild("RightLowerArm") or character:FindFirstChild("Right Arm"),
-            RightHand = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm"),
+            RightLowerArm = character:FindFirstChild("RightLowerArm") or character:FindFirstChild("Right Forearm"),
+            RightHand = character:FindFirstChild("RightHand"),
             LeftUpperLeg = character:FindFirstChild("LeftUpperLeg") or character:FindFirstChild("Left Leg"),
-            LeftLowerLeg = character:FindFirstChild("LeftLowerLeg") or character:FindFirstChild("Left Leg"),
-            LeftFoot = character:FindFirstChild("LeftFoot") or character:FindFirstChild("Left Leg"),
+            LeftLowerLeg = character:FindFirstChild("LeftLowerLeg") or character:FindFirstChild("Left Lower Leg"),
+            LeftFoot = character:FindFirstChild("LeftFoot"),
             RightUpperLeg = character:FindFirstChild("RightUpperLeg") or character:FindFirstChild("Right Leg"),
-            RightLowerLeg = character:FindFirstChild("RightLowerLeg") or character:FindFirstChild("Right Leg"),
-            RightFoot = character:FindFirstChild("RightFoot") or character:FindFirstChild("Right Leg"),
+            RightLowerLeg = character:FindFirstChild("RightLowerLeg") or character:FindFirstChild("Right Lower Leg"),
+            RightFoot = character:FindFirstChild("RightFoot"),
         }
 
         local skelInnerThick = library.Settings.Skeleton.InnerThickness
