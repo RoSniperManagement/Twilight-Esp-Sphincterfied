@@ -15,9 +15,9 @@ local LocalPlayer = Players.LocalPlayer
 TwilightESP.Settings = {
     Enabled = false,
     MaxDistance = 2000,
-    RefreshRate = 1 / 60,  -- Inverse FPS for rate limiting
+    RefreshRate = 0,  -- 0 = uncapped (adapts to FPS), otherwise 1/Hz
     Checks = {
-        Team = {Enabled = false},
+        Team = {Enabled = false, enemy = true, friendly = false, generic = true},
         Visible = {Enabled = false, OnlyVisible = false, Recolor = true},  -- Recolor for chams through/not through walls
     },
     Box = {
@@ -478,7 +478,7 @@ function playerEsp.UpdateESP(library, player)
         if library.Settings.Checks.Visible.OnlyVisible and not isVisible then return end
     end
 
-    if library.Settings.Checks.Team.Enabled and library.Settings.Checks.Team[teamType] ~= true then return end
+    if library.Settings.Checks.Team.Enabled and not library.Settings.Checks.Team[teamType] then return end  -- FIX: Proper team filtering (show enemies only when enabled)
 
     -- Box Calculation
     local head = character:FindFirstChild("Head")
@@ -757,8 +757,8 @@ function radar.Init(library)
         return circ
     end
 
-    local radarBg = DrawCircle(0.9, library.currentColors.Radar.Background, library.Settings.Radar.Radius, true, 1)  -- FIX: currentColors (not Settings.currentColors)
-    local radarBorder = DrawCircle(0.75, library.currentColors.Radar.Border, library.Settings.Radar.Radius, false, 3)  -- FIX: currentColors (not Settings.currentColors)
+    local radarBg = DrawCircle(0.9, library.currentColors.Radar.Background, library.Settings.Radar.Radius, true, 1)
+    local radarBorder = DrawCircle(0.75, library.currentColors.Radar.Border, library.Settings.Radar.Radius, false, 3)
     local radarDots = {}
     local localDot = nil
     local dragging = false
@@ -788,14 +788,20 @@ function radar.Init(library)
 
     local function getRelative(pos)
         local char = LocalPlayer.Character
-        if char and char.PrimaryPart then
-            local camPos = Vector3.new(Camera.CFrame.Position.X, char.PrimaryPart.Position.Y, Camera.CFrame.Position.Z)
-            local cf = CFrame.lookAt(char.PrimaryPart.Position, camPos)
-            local r = cf:PointToObjectSpace(pos)
-            return r.X, r.Z
-        end
-        return 0, 0
-    end
+        if not char or not char.PrimaryPart then return 0, 0 end
+        local localPos = char.PrimaryPart.Position
+        local delta = pos - localPos
+        local flatDelta = Vector3.new(delta.X, 0, delta.Z)
+        local mag = flatDelta.Magnitude
+        if mag < 1 then return 0, 0 end
+        local camLookFlat = Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)
+        if camLookFlat.Magnitude < 0.1 then camLookFlat = Vector3.new(0, 0, -1) end  -- Fallback
+        local forward = camLookFlat.Unit
+        local right = forward:Cross(Vector3.new(0, 1, 0)).Unit
+        local relX = flatDelta:Dot(right)
+        local relZ = flatDelta:Dot(forward)
+        return relX, relZ
+    end  -- FIX: Correct radar relative positioning based on camera look direction
 
     local function placeDot(plr)
         local dot = DrawCircle(1, Color3.new(1,1,1), 3, true, 1)
@@ -878,12 +884,12 @@ function radar.Init(library)
         end
         radarBg.Position = library.Settings.Radar.Position
         radarBg.Radius = library.Settings.Radar.Radius
-        radarBg.Color = library.currentColors.Radar.Background  -- FIX: currentColors (not Settings.currentColors)
+        radarBg.Color = library.currentColors.Radar.Background
         radarBg.Visible = true
 
         radarBorder.Position = library.Settings.Radar.Position
         radarBorder.Radius = library.Settings.Radar.Radius
-        radarBorder.Color = library.currentColors.Radar.Border  -- FIX: currentColors (not Settings.currentColors)
+        radarBorder.Color = library.currentColors.Radar.Border
         radarBorder.Visible = true
 
         if localDot then
@@ -895,7 +901,7 @@ function radar.Init(library)
         end
     end)
 
-    library.Drawings.Radar = {radarBg, radarBorder, localDot}  -- Use library.Drawings
+    library.Drawings.Radar = {radarBg, radarBorder, localDot}
     for _, d in ipairs(radarDots) do table.insert(library.Drawings.Radar, d.dot) end
 end
 
@@ -932,12 +938,14 @@ task.spawn(function()
         playerEsp.RemoveESP(TwilightESP, player)
     end)
 
-    -- Main loop
-    local lastUpdate = 0
+    -- Main loop (uncapped by default for FPS adaptation)
     connections.MainLoop = RunService.RenderStepped:Connect(function()
-        local now = tick()
-        if now - lastUpdate < TwilightESP.Settings.RefreshRate then return end
-        lastUpdate = now
+        local refreshRate = TwilightESP.Settings.RefreshRate
+        if refreshRate > 0 then
+            local now = tick()
+            if now - (connections.lastUpdate or 0) < refreshRate then return end
+            connections.lastUpdate = now
+        end
 
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
@@ -964,13 +972,13 @@ function TwilightESP:Unload()
     for _, conn in pairs(connections) do
         if typeof(conn) == "RBXScriptConnection" then conn:Disconnect() end
     end
-    for player, _ in pairs(TwilightESP.Drawings.ESP) do  -- Already using TwilightESP.Drawings
+    for player, _ in pairs(TwilightESP.Drawings.ESP) do
         playerEsp.RemoveESP(TwilightESP, player)
     end
     for obj, _ in pairs(TwilightESP.ObjectESPs.ESPs) do
         objectEsp.RemoveESP(TwilightESP, obj)
     end
-    for _, drawings in pairs(TwilightESP.Drawings) do  -- FIX: Use TwilightESP.Drawings (not local Drawings)
+    for _, drawings in pairs(TwilightESP.Drawings) do
         for _, d in ipairs(drawings) do
             pcall(d.Remove, d)
         end
