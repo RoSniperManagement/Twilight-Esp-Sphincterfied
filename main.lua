@@ -1,4 +1,4 @@
--- Twilight ESP Modded v2.5 - Fixed Bounding Box Calculation
+-- Twilight ESP Modded v2.6 - Fixed Stuck Drawings & Custom Team Colors
 -- Compatible with Sphincter UI
 
 local TwilightESP = {}
@@ -69,16 +69,16 @@ TwilightESP.Settings = {
 }
 
 TwilightESP.currentColors = {
-    enemy = {
+    enemy = {  -- T: Bright Orange
         Box = {
-            Outline = {Visible = Color3.fromRGB(255, 0, 0), Invisible = Color3.fromRGB(255, 50, 50)},
-            Fill = Color3.fromRGB(255, 0, 0),
+            Outline = {Visible = Color3.fromRGB(255, 140, 0), Invisible = Color3.fromRGB(255, 165, 0)},
+            Fill = Color3.fromRGB(255, 140, 0),
         },
-        Tracer = {Visible = Color3.fromRGB(255, 0, 0), Invisible = Color3.fromRGB(255, 50, 50)},
+        Tracer = {Visible = Color3.fromRGB(255, 140, 0), Invisible = Color3.fromRGB(255, 165, 0)},
         Text = Color3.fromRGB(255, 255, 255),
         Skeleton = {
-            Visible = Color3.fromRGB(255, 0, 0),
-            Fill = Color3.fromRGB(255, 0, 0),
+            Visible = Color3.fromRGB(255, 140, 0),
+            Fill = Color3.fromRGB(255, 140, 0),
             Outline = Color3.fromRGB(255, 255, 255),
         },
         HealthBar = {
@@ -86,20 +86,20 @@ TwilightESP.currentColors = {
             Fills = {High = Color3.fromRGB(0, 255, 0), Medium = Color3.fromRGB(255, 255, 0), Low = Color3.fromRGB(255, 0, 0)},
         },
         Chams = {
-            Fill = {Visible = Color3.fromRGB(0, 255, 0), Invisible = Color3.fromRGB(255, 0, 0)},
-            Outline = {Visible = Color3.fromRGB(0, 200, 0), Invisible = Color3.fromRGB(200, 0, 0)},
+            Fill = {Visible = Color3.fromRGB(255, 140, 0), Invisible = Color3.fromRGB(255, 100, 0)},
+            Outline = {Visible = Color3.fromRGB(255, 165, 0), Invisible = Color3.fromRGB(255, 100, 0)},
         },
     },
-    friendly = {
+    friendly = {  -- CT: Light Blue/Aqua
         Box = {
-            Outline = {Visible = Color3.fromRGB(0, 255, 0), Invisible = Color3.fromRGB(50, 255, 50)},
-            Fill = Color3.fromRGB(0, 255, 0),
+            Outline = {Visible = Color3.fromRGB(0, 255, 255), Invisible = Color3.fromRGB(50, 255, 255)},
+            Fill = Color3.fromRGB(0, 255, 255),
         },
-        Tracer = {Visible = Color3.fromRGB(0, 255, 0), Invisible = Color3.fromRGB(50, 255, 50)},
+        Tracer = {Visible = Color3.fromRGB(0, 255, 255), Invisible = Color3.fromRGB(50, 255, 255)},
         Text = Color3.fromRGB(255, 255, 255),
         Skeleton = {
-            Visible = Color3.fromRGB(0, 255, 0),
-            Fill = Color3.fromRGB(0, 255, 0),
+            Visible = Color3.fromRGB(0, 255, 255),
+            Fill = Color3.fromRGB(0, 255, 255),
             Outline = Color3.fromRGB(255, 255, 255),
         },
         HealthBar = {
@@ -107,8 +107,8 @@ TwilightESP.currentColors = {
             Fills = {High = Color3.fromRGB(0, 255, 0), Medium = Color3.fromRGB(255, 255, 0), Low = Color3.fromRGB(255, 0, 0)},
         },
         Chams = {
-            Fill = {Visible = Color3.fromRGB(0, 255, 0), Invisible = Color3.fromRGB(0, 100, 0)},
-            Outline = {Visible = Color3.fromRGB(0, 200, 0), Invisible = Color3.fromRGB(0, 100, 0)},
+            Fill = {Visible = Color3.fromRGB(0, 255, 255), Invisible = Color3.fromRGB(0, 100, 100)},
+            Outline = {Visible = Color3.fromRGB(0, 200, 200), Invisible = Color3.fromRGB(0, 100, 100)},
         },
     },
     generic = {
@@ -172,8 +172,9 @@ end
 
 function utilities.GetPlayerType(player)
     if player.Neutral then return "generic" end
-    if player == LocalPlayer then return "friendly" end
-    if player.Team and LocalPlayer.Team and player.TeamColor == LocalPlayer.TeamColor then return "friendly" end
+    local localTeam = LocalPlayer:FindFirstChild("PlayerStates") and LocalPlayer.PlayerStates.Team or nil
+    local playerTeam = player:FindFirstChild("PlayerStates") and player.PlayerStates.Team or nil
+    if localTeam and playerTeam and playerTeam == localTeam then return "friendly" end
     return "enemy"
 end
 
@@ -286,6 +287,35 @@ local function removeThickLine(segment)
     end)
 end
 
+-- Hide all ESP elements
+local function hideAllESP(esp, library)
+    if not esp then return end
+    for _, seg in ipairs(esp.Box.Segments) do
+        seg.fill.Visible = false
+        seg.out1.Visible = false
+        seg.out2.Visible = false
+    end
+    if esp.Box.FilledQuad then esp.Box.FilledQuad.Visible = false end
+    esp.Tracer.Visible = false
+    for _, obj in pairs(esp.HealthBar) do
+        obj.Visible = false
+    end
+    for _, text in pairs(esp.Info) do
+        text.Visible = false
+    end
+    esp.Snapline.Visible = false
+    for _, seg in pairs(esp.Skeleton) do
+        seg.fill.Visible = false
+        seg.out1.Visible = false
+        seg.out2.Visible = false
+    end
+    local highlights = library.Highlights[esp.player or esp.object]
+    if highlights then
+        highlights.los.Enabled = false
+        highlights.occ.Enabled = false
+    end
+end
+
 -- Chams Setup (unchanged)
 local function setupChams(library, player, char)
     local oldModel = library.ChamsModels[player]
@@ -333,6 +363,7 @@ local playerEsp = {}
 function playerEsp.CreateESP(library, player)
     local esp = {}
 
+    esp.player = player  -- Store reference
     esp.Box = {Segments = {}}
     for i = 1, 8 do
         table.insert(esp.Box.Segments, createThickLine())
@@ -427,54 +458,51 @@ function playerEsp.UpdateESP(library, player)
     local esp = library.Drawings.ESP[player]
     if not esp then return end
 
+    local function hideAll()
+        hideAllESP(esp, library)
+    end
+
     if not library.Settings.Enabled then
-        for _, seg in ipairs(esp.Box.Segments) do
-            seg.fill.Visible = false
-            seg.out1.Visible = false
-            seg.out2.Visible = false
-        end
-        esp.Tracer.Visible = false
-        for _, obj in pairs(esp.HealthBar) do
-            obj.Visible = false
-        end
-        for _, text in pairs(esp.Info) do
-            text.Visible = false
-        end
-        esp.Snapline.Visible = false
-        for _, seg in pairs(esp.Skeleton) do
-            seg.fill.Visible = false
-            seg.out1.Visible = false
-            seg.out2.Visible = false
-        end
-        local highlights = library.Highlights[player]
-        if highlights then
-            highlights.los.Enabled = false
-            highlights.occ.Enabled = false
-        end
+        hideAll()
         return
     end
 
     local character = player.Character
-    if not character then return end
+    if not character then
+        hideAll()
+        return
+    end
 
     local rootPart = character:FindFirstChild("HumanoidRootPart")
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not rootPart or not humanoid or humanoid.Health <= 0 then return end
+    if not rootPart or not humanoid or humanoid.Health <= 0 then
+        hideAll()
+        return
+    end
 
     local pos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
     local distance = (rootPart.Position - Camera.CFrame.Position).Magnitude
-    if distance > library.Settings.MaxDistance or not onScreen then return end
+    if distance > library.Settings.MaxDistance or not onScreen then
+        hideAll()
+        return
+    end
 
     local teamType = utilities.GetPlayerType(player)
     local isVisible = true
     if library.Settings.Checks.Visible.Enabled then
         isVisible = #Camera:GetPartsObscuringTarget({Camera.CFrame.Position, rootPart.Position}, {rootPart}) == 0
-        if library.Settings.Checks.Visible.OnlyVisible and not isVisible then return end
+        if library.Settings.Checks.Visible.OnlyVisible and not isVisible then
+            hideAll()
+            return
+        end
     end
 
-    if library.Settings.Checks.Team.Enabled and not library.Settings.Checks.Team[teamType] then return end
+    if library.Settings.Checks.Team.Enabled and not library.Settings.Checks.Team[teamType] then
+        hideAll()
+        return
+    end
 
-    -- NEW: Accurate bounding box calculation using GetBoundingBox
+    -- Accurate bounding box calculation using GetBoundingBox
     local cf, size = character:GetBoundingBox()
     local corners3D = {
         cf:PointToWorldSpace(Vector3.new(-size.X/2, -size.Y/2, -size.Z/2)),
@@ -493,7 +521,10 @@ function playerEsp.UpdateESP(library, player)
             table.insert(screenCorners, Vector2.new(screen.X, screen.Y))
         end
     end
-    if #screenCorners == 0 then return end
+    if #screenCorners == 0 then
+        hideAll()
+        return
+    end
 
     local minX = math.huge
     local maxX = -math.huge
@@ -513,7 +544,10 @@ function playerEsp.UpdateESP(library, player)
 
     -- Screen bounds check to prevent off-screen bleeding
     local viewSize = Camera.ViewportSize
-    if boxPosition.X + boxWidth < 0 or boxPosition.X > viewSize.X or boxPosition.Y + boxHeight < 0 or boxPosition.Y > viewSize.Y then return end
+    if boxPosition.X + boxWidth < 0 or boxPosition.X > viewSize.X or boxPosition.Y + boxHeight < 0 or boxPosition.Y > viewSize.Y then
+        hideAll()
+        return
+    end
 
     local boxFillCol = utilities.GetPlayerColor(library, player, isVisible, "Box", "Fill")
     local boxOutCol = utilities.GetPlayerColor(library, player, isVisible, "Box", "Outline")
@@ -743,7 +777,10 @@ end
 
 function objectEsp.UpdateESP(library, esp)
     local object = esp.object
-    if not object or not object.Parent then return end
+    if not object or not object.Parent then
+        hideAllESP(esp, library)
+        return
+    end
     playerEsp.UpdateESP(library, {Character = object, Neutral = true})
 end
 
