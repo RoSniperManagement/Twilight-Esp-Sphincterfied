@@ -1,4 +1,4 @@
--- Twilight ESP Modded v2.2 - Fixed Colors & Transparency
+-- Twilight ESP Modded v2.3 - Fixed Positioning & Application Issues
 -- Compatible with Sphincter UI
 
 local TwilightESP = {}
@@ -371,7 +371,7 @@ function playerEsp.CreateESP(library, player)
     esp.Snapline.Thickness = 1
 
     esp.Skeleton = {}
-    local boneNames = {"Head", "Neck", "UpperSpine", "LowerSpine", "LeftShoulder", "LeftUpperArm", "LeftLowerArm", "LeftHand", "RightShoulder", "RightUpperArm", "RightLowerArm", "RightHand", "LeftHip", "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightHip", "RightUpperLeg", "RightLowerLeg", "RightFoot"}
+    local boneNames = {"Head", "UpperSpine", "LeftShoulder", "LeftUpperArm", "LeftLowerArm", "LeftHand", "RightShoulder", "RightUpperArm", "RightLowerArm", "RightHand", "LeftHip", "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightHip", "RightUpperLeg", "RightLowerLeg", "RightFoot"}
     for _, bone in ipairs(boneNames) do
         esp.Skeleton[bone] = createThickLine()
     end
@@ -477,6 +477,14 @@ function playerEsp.UpdateESP(library, player)
     local boxWidth = boxHeight * 0.5
     local boxPosition = Vector2.new(pos.X - boxWidth / 2, headPos.Y)
     local boxSize = Vector2.new(boxWidth, boxHeight)
+
+    -- NEW: Screen bounds check to prevent off-screen bleeding
+    local viewSize = Camera.ViewportSize
+    local left = boxPosition.X
+    local right = left + boxWidth
+    local top = boxPosition.Y
+    local bottom = top + boxHeight
+    if right < 0 or left > viewSize.X or bottom < 0 or top > viewSize.Y then return end
 
     local boxFillCol = utilities.GetPlayerColor(library, player, isVisible, "Box", "Fill")
     local boxOutCol = utilities.GetPlayerColor(library, player, isVisible, "Box", "Outline")
@@ -647,6 +655,8 @@ function playerEsp.UpdateESP(library, player)
         local function updateBone(boneFrom, boneTo, seg)
             if not boneFrom or not boneTo then
                 seg.fill.Visible = false
+                seg.out1.Visible = false
+                seg.out2.Visible = false
                 return
             end
             local fromPos3 = boneFrom.CFrame.Position
@@ -655,12 +665,16 @@ function playerEsp.UpdateESP(library, player)
             local toScreen, toVis = Camera:WorldToViewportPoint(toPos3)
             if not (fromVis and toVis) or fromScreen.Z < 0 or toScreen.Z < 0 then
                 seg.fill.Visible = false
+                seg.out1.Visible = false
+                seg.out2.Visible = false
                 return
             end
             local screenBounds = Camera.ViewportSize
             if fromScreen.X < 0 or fromScreen.X > screenBounds.X or fromScreen.Y < 0 or fromScreen.Y > screenBounds.Y or
                toScreen.X < 0 or toScreen.X > screenBounds.X or toScreen.Y < 0 or toScreen.Y > screenBounds.Y then
                 seg.fill.Visible = false
+                seg.out1.Visible = false
+                seg.out2.Visible = false
                 return
             end
             updateThickLine(seg, Vector2.new(fromScreen.X, fromScreen.Y), Vector2.new(toScreen.X, toScreen.Y), skelFillCol, skelOutCol, skelInnerThick, skelOutThick, skelTrans)
@@ -668,7 +682,7 @@ function playerEsp.UpdateESP(library, player)
 
         updateBone(bones.Head, bones.UpperTorso, esp.Skeleton.Head)
         updateBone(bones.UpperTorso, bones.LowerTorso, esp.Skeleton.UpperSpine)
-        updateBone(bones.LowerTorso, bones.UpperTorso, esp.Skeleton.Neck)
+        -- REMOVED: Duplicate/erroneous Neck bone line
         updateBone(bones.UpperTorso, bones.LeftUpperArm, esp.Skeleton.LeftShoulder)
         updateBone(bones.LeftUpperArm, bones.LeftLowerArm, esp.Skeleton.LeftUpperArm)
         updateBone(bones.LeftLowerArm, bones.LeftHand, esp.Skeleton.LeftLowerArm)
