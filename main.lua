@@ -1,4 +1,4 @@
--- Twilight ESP Modded v2.3 - Fixed Positioning & Application Issues
+-- Twilight ESP Modded v2.4 - Fixed R6 Support & Color Handling
 -- Compatible with Sphincter UI
 
 local TwilightESP = {}
@@ -185,7 +185,8 @@ function utilities.GetPlayerColor(library, player, isVisible, part, additional)
 
     if part == "Box" then
         if additional == "Outline" then
-            return colors.Box.Outline[visKey]
+            local col = colors.Box.Outline
+            return type(col) == "table" and col[visKey] or col
         elseif additional == "Fill" then
             return colors.Box.Fill
         end
@@ -195,10 +196,14 @@ function utilities.GetPlayerColor(library, player, isVisible, part, additional)
         elseif additional == "Outline" then
             return colors.Skeleton.Outline
         else
-            return colors.Skeleton[visKey]
+            local col = colors.Skeleton.Visible
+            return type(col) == "table" and col or col
         end
-    elseif part == "Tracer" or part == "Text" then
-        return colors[part][visKey]
+    elseif part == "Tracer" then
+        local col = colors.Tracer
+        return type(col) == "table" and col[visKey] or col
+    elseif part == "Text" then
+        return colors.Text
     elseif part == "HealthBar" then
         if additional == "Outline" then
             return colors.HealthBar.Outline
@@ -217,7 +222,7 @@ function utilities.GetPlayerColor(library, player, isVisible, part, additional)
     elseif part == "Chams" then
         if additional == "Fill" or additional == "Outline" then
             local sub = additional == "Fill" and colors.Chams.Fill or colors.Chams.Outline
-            return sub[visKey]
+            return type(sub) == "table" and sub[visKey] or sub
         end
     end
     return Color3.fromRGB(255, 255, 255)  -- Fallback
@@ -371,7 +376,7 @@ function playerEsp.CreateESP(library, player)
     esp.Snapline.Thickness = 1
 
     esp.Skeleton = {}
-    local boneNames = {"Head", "UpperSpine", "LeftShoulder", "LeftUpperArm", "LeftLowerArm", "LeftHand", "RightShoulder", "RightUpperArm", "RightLowerArm", "RightHand", "LeftHip", "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightHip", "RightUpperLeg", "RightLowerLeg", "RightFoot"}
+    local boneNames = {"Head", "UpperSpine", "LeftShoulder", "LeftUpperArm", "LeftLowerArm", "LeftHand", "RightShoulder", "RightUpperArm", "RightLowerArm", "RightHand", "LeftHip", "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightHip", "RightUpperLeg", "RightLowerLeg", "RightFoot"}  -- Removed Neck
     for _, bone in ipairs(boneNames) do
         esp.Skeleton[bone] = createThickLine()
     end
@@ -478,7 +483,7 @@ function playerEsp.UpdateESP(library, player)
     local boxPosition = Vector2.new(pos.X - boxWidth / 2, headPos.Y)
     local boxSize = Vector2.new(boxWidth, boxHeight)
 
-    -- NEW: Screen bounds check to prevent off-screen bleeding
+    -- Screen bounds check to prevent off-screen bleeding
     local viewSize = Camera.ViewportSize
     local left = boxPosition.X
     local right = left + boxWidth
@@ -634,17 +639,17 @@ function playerEsp.UpdateESP(library, player)
             UpperTorso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso"),
             LowerTorso = character:FindFirstChild("LowerTorso") or character:FindFirstChild("Torso"),
             LeftUpperArm = character:FindFirstChild("LeftUpperArm") or character:FindFirstChild("Left Arm"),
-            LeftLowerArm = character:FindFirstChild("LeftLowerArm") or character:FindFirstChild("Left Forearm"),
-            LeftHand = character:FindFirstChild("LeftHand"),
+            LeftLowerArm = character:FindFirstChild("LeftLowerArm") or character:FindFirstChild("Left Arm"),
+            LeftHand = character:FindFirstChild("LeftHand") or character:FindFirstChild("Left Arm"),
             RightUpperArm = character:FindFirstChild("RightUpperArm") or character:FindFirstChild("Right Arm"),
-            RightLowerArm = character:FindFirstChild("RightLowerArm") or character:FindFirstChild("Right Forearm"),
-            RightHand = character:FindFirstChild("RightHand"),
+            RightLowerArm = character:FindFirstChild("RightLowerArm") or character:FindFirstChild("Right Arm"),
+            RightHand = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm"),
             LeftUpperLeg = character:FindFirstChild("LeftUpperLeg") or character:FindFirstChild("Left Leg"),
-            LeftLowerLeg = character:FindFirstChild("LeftLowerLeg") or character:FindFirstChild("Left Lower Leg"),
-            LeftFoot = character:FindFirstChild("LeftFoot"),
+            LeftLowerLeg = character:FindFirstChild("LeftLowerLeg") or character:FindFirstChild("Left Leg"),
+            LeftFoot = character:FindFirstChild("LeftFoot") or character:FindFirstChild("Left Leg"),
             RightUpperLeg = character:FindFirstChild("RightUpperLeg") or character:FindFirstChild("Right Leg"),
-            RightLowerLeg = character:FindFirstChild("RightLowerLeg") or character:FindFirstChild("Right Lower Leg"),
-            RightFoot = character:FindFirstChild("RightFoot"),
+            RightLowerLeg = character:FindFirstChild("RightLowerLeg") or character:FindFirstChild("Right Leg"),
+            RightFoot = character:FindFirstChild("RightFoot") or character:FindFirstChild("Right Leg"),
         }
 
         local skelInnerThick = library.Settings.Skeleton.InnerThickness
@@ -653,7 +658,7 @@ function playerEsp.UpdateESP(library, player)
         local skelOutCol = utilities.GetPlayerColor(library, player, isVisible, "Skeleton", "Outline")
 
         local function updateBone(boneFrom, boneTo, seg)
-            if not boneFrom or not boneTo then
+            if not boneFrom or not boneTo or boneFrom == boneTo then
                 seg.fill.Visible = false
                 seg.out1.Visible = false
                 seg.out2.Visible = false
@@ -682,7 +687,6 @@ function playerEsp.UpdateESP(library, player)
 
         updateBone(bones.Head, bones.UpperTorso, esp.Skeleton.Head)
         updateBone(bones.UpperTorso, bones.LowerTorso, esp.Skeleton.UpperSpine)
-        -- REMOVED: Duplicate/erroneous Neck bone line
         updateBone(bones.UpperTorso, bones.LeftUpperArm, esp.Skeleton.LeftShoulder)
         updateBone(bones.LeftUpperArm, bones.LeftLowerArm, esp.Skeleton.LeftUpperArm)
         updateBone(bones.LeftLowerArm, bones.LeftHand, esp.Skeleton.LeftLowerArm)
@@ -756,6 +760,7 @@ function radar.Init(library)
     local dragging = false
     local dragStart, mouseStart = Vector2.new(), Vector2.new()
 
+    -- Draggable Radar
     UserInputService.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton2 and library.Settings.Radar.Enabled then
             local mousePos = UserInputService:GetMouseLocation()
@@ -795,7 +800,7 @@ function radar.Init(library)
     end
 
     local function placeDot(plr)
-        local dot = DrawCircle(0.8, Color3.new(1,1,1), 3, true, 1)  -- NEW: Visible transparency 0.8
+        local dot = DrawCircle(0.8, Color3.new(1,1,1), 3, true, 1)
         local conn
         conn = RunService.RenderStepped:Connect(function()
             if not plr.Parent or not plr.Character or not plr.Character.PrimaryPart or (plr.Character:FindFirstChildOfClass("Humanoid") and plr.Character.Humanoid.Health <= 0) then
@@ -824,7 +829,7 @@ function radar.Init(library)
                 dot.Radius = 2
             end
             dot.Color = utilities.GetPlayerColor(library, plr, isVis, "Box", "Outline")
-            dot.Transparency = 0.8  -- NEW: Ensure visible
+            dot.Transparency = 0.8
             dot.Visible = true
         end)
         table.insert(radarDots, {dot = dot, conn = conn, plr = plr})
@@ -838,7 +843,7 @@ function radar.Init(library)
         tri.PointA = library.Settings.Radar.Position + Vector2.new(0, -6)
         tri.PointB = library.Settings.Radar.Position + Vector2.new(-3, 6)
         tri.PointC = library.Settings.Radar.Position + Vector2.new(3, 6)
-        tri.Transparency = 0.8  -- NEW
+        tri.Transparency = 0.8
         tri.Visible = false
         return tri
     end
@@ -850,8 +855,6 @@ function radar.Init(library)
 
     connections.PlayerAdded2 = Players.PlayerAdded:Connect(function(plr)
         if plr ~= LocalPlayer then placeDot(plr) end
-        pcall(localDot.Remove, localDot)
-        localDot = newLocalDot()
     end)
     connections.PlayerRemoving2 = Players.PlayerRemoving:Connect(function(plr)
         for i = #radarDots, 1, -1 do
@@ -862,6 +865,10 @@ function radar.Init(library)
                 table.remove(radarDots, i)
             end
         end
+    end)
+    connections.LocalCharAdded = LocalPlayer.CharacterAdded:Connect(function()
+        pcall(localDot.Remove, localDot)
+        localDot = newLocalDot()
     end)
 
     connections.RadarLoop = RunService.RenderStepped:Connect(function()
