@@ -345,6 +345,7 @@ local function hideAllESP(esp, library)
 end
 
 -- Fixed Chams Setup
+-- Fixed Chams Setup
 local function setupChams(library, player, char)
     local oldModel = library.ChamsModels[player]
     if oldModel then oldModel:Destroy() end
@@ -379,30 +380,35 @@ local function setupChams(library, player, char)
         cloned:ClearAllChildren()
         cloned.CanCollide = false
         cloned.Anchored = false
-        cloned.Name = generateRandomName() -- Randomize part names too
+        cloned.Name = generateRandomName()
         if cloned:IsA("MeshPart") then cloned.TextureID = "" end
         
+        -- Prevents z-fighting with the line-of-sight Highlight
         cloned.Size = cloned.Size * 0.99
         
         local weld = Instance.new("WeldConstraint")
         weld.Parent = cloned
         weld.Part0 = cloned
         weld.Part1 = child
-        weld.Name = generateRandomName() -- Randomize weld name
+        weld.Name = generateRandomName()
     end
 
+    -- FIXED: Line-of-sight highlight should be on the original character with Occluded depth mode
     local losHighlight = Instance.new("Highlight")
     losHighlight.Parent = char
     losHighlight.Name = randomHighlightName1
     losHighlight.DepthMode = Enum.HighlightDepthMode.Occluded
     losHighlight.OutlineTransparency = 1
+    -- Set to almost invisible for visible sections
     losHighlight.FillTransparency = 0.999
 
+    -- FIXED: Occlusion highlight should be on the cloned model with AlwaysOnTop depth mode
     local occHighlight = Instance.new("Highlight")
     occHighlight.Parent = chamsChr
     occHighlight.Name = randomHighlightName2
     occHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     occHighlight.OutlineTransparency = 1
+    -- This will be visible behind walls
     occHighlight.FillTransparency = 0.5
 
     library.Highlights[player] = {los = losHighlight, occ = occHighlight}
@@ -719,22 +725,19 @@ function playerEsp.UpdateESP(library, player)
     esp.Info.Distance.Transparency = textTrans
     esp.Info.Distance.Visible = library.Settings.Name.Enabled[teamType]
 
-    local highlights = library.Highlights[player]
-    if highlights and 
+       local highlights = library.Highlights[player]
+    if highlights and library.Settings.Chams.Enabled[teamType] then
         local losFillCol = utilities.GetPlayerColor(library, player, true, "Chams", "Fill")
         local occFillCol = utilities.GetPlayerColor(library, player, false, "Chams", "Fill")
         
-        -- Modified: Use Occlusion toggle for line-of-sight transparency (masking without visible fill)
-        local losFillTrans = library.Settings.Chams.Fill.Enabled and (library.Settings.Chams.Occlusion and 0.999 or library.Settings.Chams.Fill.Transparency) or 1
+        -- Line-of-sight highlight (visible parts) - should be almost invisible
         highlights.los.FillColor = losFillCol
-        highlights.los.FillTransparency = losFillTrans  -- Was hardcoded to 0.5; now configurable with Occlusion
+        highlights.los.FillTransparency = 0.999  -- Almost invisible for visible parts
         highlights.los.Enabled = true
     
-        -- Modified: Optionally set to 0 for solid behind walls (like example); keep configurable
-        local occFillTrans = library.Settings.Chams.Fill.Enabled and library.Settings.Chams.Fill.Transparency or 1
-        -- For exact example match, uncomment: occFillTrans = library.Settings.Chams.Fill.Enabled and 0 or 1
+        -- Occlusion highlight (through walls) - this is what you see behind walls
         highlights.occ.FillColor = occFillCol
-        highlights.occ.FillTransparency = occFillTrans
+        highlights.occ.FillTransparency = library.Settings.Chams.Fill.Enabled and library.Settings.Chams.Fill.Transparency or 0.5
         highlights.occ.Enabled = true
         
         -- Handle outline colors if enabled
