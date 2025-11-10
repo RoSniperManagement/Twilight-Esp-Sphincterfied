@@ -1042,23 +1042,37 @@ function TwilightESP:RemoveObject(obj)
 end
 
 -- Main Init
+-- Main Init
 task.spawn(function()
     repeat task.wait() until LocalPlayer.Character and LocalPlayer.Character.PrimaryPart
 
     local function initPlayer(player)
         if player == LocalPlayer then return end
+        
         playerEsp.CreateESP(TwilightESP, player)
-        player.CharacterAdded:Connect(function(char)
-            setupChams(TwilightESP, player, char)
-        end)
-        if player.Character then
-            setupChams(TwilightESP, player, player.Character)
+        
+        -- FIXED: Handle character changes (respawns) properly
+        local function setupCharacter(char)
+            if char then
+                -- Wait a bit for character to fully load
+                task.wait(0.5)
+                setupChams(TwilightESP, player, char)
+            end
         end
+        
+        -- Set up for current character
+        setupCharacter(player.Character)
+        
+        -- Set up for future characters (respawns)
+        player.CharacterAdded:Connect(function(char)
+            setupCharacter(char)
+        end)
     end
 
     for _, player in ipairs(Players:GetPlayers()) do
         initPlayer(player)
     end
+    
     connections.PlayerAdded = Players.PlayerAdded:Connect(initPlayer)
     connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(player)
         playerEsp.RemoveESP(TwilightESP, player)
