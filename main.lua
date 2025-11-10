@@ -345,6 +345,7 @@ local function hideAllESP(esp, library)
 end
 
 -- Chams Setup (unchanged)
+-- Fixed Chams Setup
 local function setupChams(library, player, char)
     local oldModel = library.ChamsModels[player]
     if oldModel then oldModel:Destroy() end
@@ -354,33 +355,44 @@ local function setupChams(library, player, char)
         if oldHighlights.occ then oldHighlights.occ:Destroy() end
     end
 
+    -- Create the occlusion model (the one that shows through walls)
     local chamsChr = Instance.new("Model")
     chamsChr.Parent = workspace
     chamsChr.Name = player.Name .. "_Chams"
     library.ChamsModels[player] = chamsChr
 
+    -- Clone all BaseParts and weld them to the original parts
     for _, child in pairs(char:GetChildren()) do
         if not child:IsA("BasePart") then continue end
+        
         local cloned = child:Clone()
         cloned.Parent = chamsChr
         cloned:ClearAllChildren()
         cloned.CanCollide = false
         if cloned:IsA("MeshPart") then cloned.TextureID = "" end
+        
+        -- Prevent z-fighting by slightly reducing size
         cloned.Size = cloned.Size * 0.99
+        
+        -- Weld to keep in sync with original part
         local weld = Instance.new("WeldConstraint")
         weld.Parent = cloned
         weld.Part0 = cloned
         weld.Part1 = child
     end
 
+    -- Line-of-sight Highlight (visible when not behind walls)
     local losHighlight = Instance.new("Highlight")
     losHighlight.Parent = char
     losHighlight.DepthMode = Enum.HighlightDepthMode.Occluded
     losHighlight.OutlineTransparency = 1
+    losHighlight.FillTransparency = 0.999  -- Almost transparent for visible parts
 
+    -- Occlusion Highlight (visible through walls)
     local occHighlight = Instance.new("Highlight")
     occHighlight.Parent = chamsChr
     occHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    occHighlight.OutlineTransparency = 1
 
     library.Highlights[player] = {los = losHighlight, occ = occHighlight}
 end
@@ -699,20 +711,31 @@ function playerEsp.UpdateESP(library, player)
     local highlights = library.Highlights[player]
     if highlights and library.Settings.Chams.Enabled[teamType] then
         local losFillCol = utilities.GetPlayerColor(library, player, true, "Chams", "Fill")
-        local losOutCol = utilities.GetPlayerColor(library, player, true, "Chams", "Outline")
-        highlights.los.FillColor = losFillCol
-        highlights.los.OutlineColor = losOutCol
-        highlights.los.FillTransparency = library.Settings.Chams.Fill.Enabled and library.Settings.Chams.Fill.Transparency or 1
-        highlights.los.OutlineTransparency = library.Settings.Chams.Outline.Enabled and library.Settings.Chams.Outline.Transparency or 1
-        highlights.los.Enabled = true
-
         local occFillCol = utilities.GetPlayerColor(library, player, false, "Chams", "Fill")
-        local occOutCol = utilities.GetPlayerColor(library, player, false, "Chams", "Outline")
+        
+        -- Line-of-sight highlight (visible parts)
+        highlights.los.FillColor = losFillCol
+        highlights.los.FillTransparency = library.Settings.Chams.Fill.Enabled and 0.5 or 0.999
+        highlights.los.Enabled = true
+    
+        -- Occlusion highlight (through walls)
         highlights.occ.FillColor = occFillCol
-        highlights.occ.OutlineColor = occOutCol
         highlights.occ.FillTransparency = library.Settings.Chams.Fill.Enabled and library.Settings.Chams.Fill.Transparency or 1
-        highlights.occ.OutlineTransparency = library.Settings.Chams.Outline.Enabled and library.Settings.Chams.Outline.Transparency or 1
-        highlights.occ.Enabled = not library.Settings.Chams.Occlusion
+        highlights.occ.Enabled = true
+        
+        -- Handle outline colors if enabled
+        if library.Settings.Chams.Outline.Enabled then
+            local losOutCol = utilities.GetPlayerColor(library, player, true, "Chams", "Outline")
+            local occOutCol = utilities.GetPlayerColor(library, player, false, "Chams", "Outline")
+            
+            highlights.los.OutlineColor = losOutCol
+            highlights.los.OutlineTransparency = library.Settings.Chams.Outline.Transparency
+            highlights.occ.OutlineColor = occOutCol
+            highlights.occ.OutlineTransparency = library.Settings.Chams.Outline.Transparency
+        else
+            highlights.los.OutlineTransparency = 1
+            highlights.occ.OutlineTransparency = 1
+        end
     elseif highlights then
         highlights.los.Enabled = false
         highlights.occ.Enabled = false
