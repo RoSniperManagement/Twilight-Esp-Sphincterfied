@@ -172,12 +172,38 @@ end
 
 function utilities.GetPlayerType(player)
     if player.Neutral then return "generic" end
-    local localStates = LocalPlayer:FindFirstChild("PlayerStates")
-    local playerStates = player:FindFirstChild("PlayerStates")
-    local localTeam = localStates and localStates:FindFirstChild("Team") and localStates.Team.Value or nil
-    local playerTeam = playerStates and playerStates:FindFirstChild("Team") and playerStates.Team.Value or nil
-    if localTeam and playerTeam and playerTeam == localTeam then return "friendly" end
-    return "enemy"
+    
+    if game.PlaceId == 112757576021097 then
+        local localStates = LocalPlayer:FindFirstChild("PlayerStates")
+        local playerStates = player:FindFirstChild("PlayerStates")
+        local localTeam = localStates and localStates:FindFirstChild("Team") and localStates.Team.Value or nil
+        local playerTeam = playerStates and playerStates:FindFirstChild("Team") and playerStates.Team.Value or nil
+        
+        print("Specific Game Team Detection - Local Team:", localTeam, "Player Team:", playerTeam)
+        
+        if not localTeam or not playerTeam then
+            return "generic"
+        end
+        
+        if playerTeam == localTeam then
+            return "friendly"  -- Light Blue/Aqua
+        else
+            return "enemy"     -- Bright Orange
+        end
+    else
+        local localTeam = LocalPlayer.Team
+        local playerTeam = player.Team
+        
+        if localTeam and playerTeam then
+            if playerTeam == localTeam then
+                return "friendly"
+            else
+                return "enemy"
+            end
+        end
+        
+        return "generic"
+    end
 end
 
 function utilities.GetPlayerColor(library, player, isVisible, part, additional)
