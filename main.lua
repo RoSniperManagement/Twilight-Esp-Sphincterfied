@@ -344,7 +344,6 @@ local function hideAllESP(esp, library)
     end
 end
 
--- Chams Setup (unchanged)
 -- Fixed Chams Setup
 local function setupChams(library, player, char)
     local oldModel = library.ChamsModels[player]
@@ -355,13 +354,23 @@ local function setupChams(library, player, char)
         if oldHighlights.occ then oldHighlights.occ:Destroy() end
     end
 
-    -- Create the occlusion model (the one that shows through walls)
+    local function generateRandomName()
+        local prefixes = {"Part", "Mesh", "Accessory", "Effect", "FX", "Render", "Visual", "Temp"}
+        local suffixes = {"Helper", "Container", "Group", "Instance", "Object", "Element"}
+        local numbers = math.random(1000, 9999)
+        
+        return prefixes[math.random(1, #prefixes)] .. suffixes[math.random(1, #suffixes)] .. numbers
+    end
+
+    local randomModelName = generateRandomName()
+    local randomHighlightName1 = generateRandomName()
+    local randomHighlightName2 = generateRandomName()
+
     local chamsChr = Instance.new("Model")
     chamsChr.Parent = workspace
-    chamsChr.Name = player.Name .. "_Chams"
+    chamsChr.Name = randomModelName
     library.ChamsModels[player] = chamsChr
 
-    -- Clone all BaseParts and weld them to the original parts
     for _, child in pairs(char:GetChildren()) do
         if not child:IsA("BasePart") then continue end
         
@@ -369,30 +378,32 @@ local function setupChams(library, player, char)
         cloned.Parent = chamsChr
         cloned:ClearAllChildren()
         cloned.CanCollide = false
+        cloned.Anchored = false
+        cloned.Name = generateRandomName() -- Randomize part names too
         if cloned:IsA("MeshPart") then cloned.TextureID = "" end
         
-        -- Prevent z-fighting by slightly reducing size
         cloned.Size = cloned.Size * 0.99
         
-        -- Weld to keep in sync with original part
         local weld = Instance.new("WeldConstraint")
         weld.Parent = cloned
         weld.Part0 = cloned
         weld.Part1 = child
+        weld.Name = generateRandomName() -- Randomize weld name
     end
 
-    -- Line-of-sight Highlight (visible when not behind walls)
     local losHighlight = Instance.new("Highlight")
     losHighlight.Parent = char
+    losHighlight.Name = randomHighlightName1
     losHighlight.DepthMode = Enum.HighlightDepthMode.Occluded
     losHighlight.OutlineTransparency = 1
-    losHighlight.FillTransparency = 0.999  -- Almost transparent for visible parts
+    losHighlight.FillTransparency = 0.999
 
-    -- Occlusion Highlight (visible through walls)
     local occHighlight = Instance.new("Highlight")
     occHighlight.Parent = chamsChr
+    occHighlight.Name = randomHighlightName2
     occHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     occHighlight.OutlineTransparency = 1
+    occHighlight.FillTransparency = 0.5
 
     library.Highlights[player] = {los = losHighlight, occ = occHighlight}
 end
