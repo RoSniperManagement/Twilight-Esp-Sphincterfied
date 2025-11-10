@@ -54,10 +54,10 @@ TwilightESP.Settings = {
         Transparency = 1.0,  -- Bone opacity
     },
     Chams = {
-        Enabled = {enemy = false, friendly = false, generic = false},
-        Fill = {Enabled = true, Transparency = 0.5},
-        Outline = {Enabled = true, Transparency = 0},
-        Occlusion = false,
+        Enabled = {enemy = true, friendly = false, generic = false},  -- Enable for enemies to test
+        Fill = {Enabled = true, Transparency = 0.5},  -- Lower Transparency to 0 for solid like the example
+        Outline = {Enabled = false, Transparency = 0},  -- Disable outlines to match example
+        Occlusion = true,  -- Set to true for "only behind walls" effect
     },
     Radar = {
         Enabled = true,
@@ -720,18 +720,21 @@ function playerEsp.UpdateESP(library, player)
     esp.Info.Distance.Visible = library.Settings.Name.Enabled[teamType]
 
     local highlights = library.Highlights[player]
-    if highlights and library.Settings.Chams.Enabled[teamType] then
+    if highlights and 
         local losFillCol = utilities.GetPlayerColor(library, player, true, "Chams", "Fill")
         local occFillCol = utilities.GetPlayerColor(library, player, false, "Chams", "Fill")
         
-        -- Line-of-sight highlight (visible parts)
+        -- Modified: Use Occlusion toggle for line-of-sight transparency (masking without visible fill)
+        local losFillTrans = library.Settings.Chams.Fill.Enabled and (library.Settings.Chams.Occlusion and 0.999 or library.Settings.Chams.Fill.Transparency) or 1
         highlights.los.FillColor = losFillCol
-        highlights.los.FillTransparency = library.Settings.Chams.Fill.Enabled and 0.5 or 0.999
+        highlights.los.FillTransparency = losFillTrans  -- Was hardcoded to 0.5; now configurable with Occlusion
         highlights.los.Enabled = true
     
-        -- Occlusion highlight (through walls)
+        -- Modified: Optionally set to 0 for solid behind walls (like example); keep configurable
+        local occFillTrans = library.Settings.Chams.Fill.Enabled and library.Settings.Chams.Fill.Transparency or 1
+        -- For exact example match, uncomment: occFillTrans = library.Settings.Chams.Fill.Enabled and 0 or 1
         highlights.occ.FillColor = occFillCol
-        highlights.occ.FillTransparency = library.Settings.Chams.Fill.Enabled and library.Settings.Chams.Fill.Transparency or 1
+        highlights.occ.FillTransparency = occFillTrans
         highlights.occ.Enabled = true
         
         -- Handle outline colors if enabled
